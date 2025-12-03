@@ -21,6 +21,14 @@
       "version": "1.0.0",
       "category": "design",
       "keywords": ["design", "frontend", "multi-model", "gemini", "lightweight"]
+    },
+    {
+      "name": "smartice-tools",
+      "source": "./plugins/smartice-tools",
+      "description": "Tools for contributing plugins to SmartIce marketplace - submit plugins via automated PR",
+      "version": "1.0.0",
+      "category": "productivity",
+      "keywords": ["marketplace", "submission", "contribution", "pr", "github"]
     }
   ]
 }

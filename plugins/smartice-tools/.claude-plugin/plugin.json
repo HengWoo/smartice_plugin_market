@@ -1,0 +1,10 @@
+{
+  "name": "smartice-tools",
+  "version": "1.0.0",
+  "description": "Tools for contributing to the SmartIce Plugin Marketplace",
+  "author": {
+    "name": "HengWoo"
+  },
+  "license": "MIT",
+  "keywords": ["marketplace", "submission", "contribution"]
+}

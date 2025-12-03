@@ -14,7 +14,7 @@ from typing import Optional
 from dataclasses import dataclass
 
 
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent"
 
 DEFAULT_CONFIG = {
     "temperature": 0.7,

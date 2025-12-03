@@ -2,63 +2,163 @@
 
 A Claude Code plugin marketplace featuring design tools for multi-model frontend development.
 
-## Installation
+Claude Code 插件市场，提供多模型前端开发设计工具。
+
+---
+
+## Installation | 安装
 
 Add this marketplace to Claude Code:
+
+将此市场添加到 Claude Code：
 
 ```
 /plugin marketplace add HengWoo/smartice_plugin_market
 ```
 
-## Available Plugins
+---
+
+## Available Plugins | 可用插件
 
 ### design-council
 
 Multi-model frontend design orchestration using Opus for planning/review and Gemini for code generation.
 
-**Features:**
-- Turn-based design workflow with multiple AI roles
-- Design Strategist (Opus 4.5) creates specifications
-- Code Generator (Gemini 3 Pro) produces frontend code
-- Code Reviewer (Opus 4.5) evaluates quality
-- Adaptation Advisor synthesizes feedback for iterations
+多模型前端设计编排工具，使用 Opus 进行规划/审查，Gemini 进行代码生成。
 
-**Install:**
+**Features | 功能：**
+- Turn-based design workflow with multiple AI roles | 多角色轮流协作的设计工作流
+- Design Strategist (Opus 4.5) creates specifications | 设计策略师 (Opus 4.5) 创建规格说明
+- Code Generator (Gemini 3 Pro) produces frontend code | 代码生成器 (Gemini 3 Pro) 生成前端代码
+- Code Reviewer (Opus 4.5) evaluates quality | 代码审查员 (Opus 4.5) 评估质量
+- Adaptation Advisor synthesizes feedback for iterations | 适配顾问整合反馈进行迭代
+
+**Install | 安装：**
 ```
 /plugin install design-council@smartice-plugin-market
 ```
 
-**Usage:**
+**Usage | 使用：**
 ```
 /design-sprint "Your design description" --rounds=3 --framework=react
 ```
+
+---
 
 ### design-council-lite
 
 Lightweight version for simpler multi-model design workflows.
 
-**Features:**
-- Streamlined two-step workflow
-- Claude plans, Gemini generates
-- Manual iteration control
-- Design templates included
+轻量版多模型设计工作流。
 
-**Install:**
+**Features | 功能：**
+- Streamlined two-step workflow | 精简的两步工作流
+- Claude plans, Gemini generates | Claude 规划，Gemini 生成
+- Manual iteration control | 手动迭代控制
+- Design templates included | 包含设计模板
+
+**Install | 安装：**
 ```
 /plugin install design-council-lite@smartice-plugin-market
 ```
 
-## Requirements
+---
 
-Both plugins require a Gemini API key:
+### smartice-tools
+
+Tools for contributing plugins to the marketplace.
+
+向市场贡献插件的工具集。
+
+**Install | 安装：**
+```
+/plugin install smartice-tools@smartice-plugin-market
+```
+
+**Usage | 使用：**
+```
+/smartice-tools:submit-plugin ./path/to/your-plugin
+```
+
+---
+
+## Contributing Plugins | 贡献插件
+
+### For Claude Code Users | Claude Code 用户
+
+The easiest way to contribute - submit directly from Claude Code!
+
+最简单的贡献方式 - 直接从 Claude Code 提交！
+
+**Step 1 | 步骤一：** Install the tools | 安装工具
+```
+/plugin install smartice-tools@smartice-plugin-market
+```
+
+**Step 2 | 步骤二：** Submit your plugin | 提交你的插件
+```
+/smartice-tools:submit-plugin ./path/to/your-plugin
+```
+
+**What happens | 自动完成：**
+- Validates plugin structure | 验证插件结构
+- Forks the marketplace repo | Fork 市场仓库
+- Copies your plugin files | 复制插件文件
+- Updates marketplace.json | 更新 marketplace.json
+- Creates Pull Request automatically | 自动创建 Pull Request
+
+### Manual Contribution | 手动贡献
+
+1. Fork this repository | Fork 此仓库
+2. Add your plugin to `plugins/` | 将插件添加到 `plugins/` 目录
+3. Update `.claude-plugin/marketplace.json` | 更新 `.claude-plugin/marketplace.json`
+4. Submit a Pull Request | 提交 Pull Request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details | 详见 [CONTRIBUTING.md](CONTRIBUTING.md)
+
+---
+
+## Plugin Requirements | 插件要求
+
+Your plugin must have | 插件必须包含：
+
+```
+your-plugin/
+├── .claude-plugin/
+│   └── plugin.json      # Required | 必需
+├── README.md            # Recommended | 推荐
+└── skills/ or commands/ or agents/  # At least one | 至少一个
+```
+
+**plugin.json required fields | plugin.json 必需字段：**
+```json
+{
+  "name": "your-plugin-name",
+  "version": "1.0.0",
+  "description": "What your plugin does",
+  "author": {
+    "name": "Your Name"
+  }
+}
+```
+
+---
+
+## Requirements | 环境要求
+
+Both design plugins require a Gemini API key:
+
+两个设计插件都需要 Gemini API 密钥：
 
 ```bash
 export GEMINI_API_KEY="your-api-key-here"
 ```
 
-Get your API key: https://makersuite.google.com/app/apikey
+Get your API key | 获取密钥：https://makersuite.google.com/app/apikey
 
-## Supported Frameworks
+---
+
+## Supported Frameworks | 支持的框架
 
 - React (hooks, functional components)
 - Vue 3 (Composition API)
@@ -66,6 +166,8 @@ Get your API key: https://makersuite.google.com/app/apikey
 - Next.js (App Router)
 - Plain HTML/CSS/JavaScript
 
-## License
+---
+
+## License | 许可证
 
 MIT

@@ -1,280 +1,184 @@
 ---
 description: "Orchestrate multi-model frontend design: Opus plans, Gemini codes, Opus reviews"
-argument-hint: "[description] --rounds=3 --framework=react"
-model: opus
+argument-hint: "[description] --rounds=3 --format=react"
+model: claude-opus-4-5-20251101
 ---
 
-# Design Sprint Orchestration
+# Design Sprint
 
-Execute a full design sprint with turn-based rounds of planning, generation, and review.
+Execute a design sprint with iterative planning, generation, and review.
 
-## Configuration
+## Arguments
 
-Parse arguments from $ARGUMENTS:
-- **Description**: The main design request (required)
-- **--rounds=N**: Maximum iteration rounds (default: 3)
-- **--framework=X**: Target framework - react/vue/svelte/html/nextjs (default: react)
-- **--strict**: Require score > 8 to pass (default: false, uses 7.0)
-- **--output=DIR**: Output directory for generated files (default: current directory)
-- **--context=TEXT**: Additional context about existing codebase
+Parse from $ARGUMENTS:
+- **description**: What to design (required)
+- **--rounds=N**: Max iterations (default: 3)
+- **--format=X**: html/react/vue/svelte/nextjs (default: ask user)
+- **--strict**: Require score > 8 (default: 7.0)
+- **--output=DIR**: Output directory (default: ./)
 
-Arguments provided: $ARGUMENTS
+### Output Formats
 
-## Phase 1: Design Specification
+| Format | Best For |
+|--------|----------|
+| **html** | Quick demos, design approval, stakeholder previews (single file, no build) |
+| **react** | Production components, complex interactivity |
+| **vue** | Vue 3 composition API components |
+| **svelte** | Svelte components |
+| **nextjs** | Next.js App Router pages/components |
 
-First, create a comprehensive design specification using the design-strategist agent.
+If `--format` not specified, the design-strategist will ask the user.
 
-Launch the **design-strategist** agent with the following task:
+## Staging Directory
 
+All generated code is written to a staging directory first:
 ```
-Create a frontend design specification for:
-
-$ARGUMENTS
-
-Framework target: [extracted --framework or react]
-Additional context: [extracted --context or none]
-
-Output a complete JSON design specification covering:
-- Aesthetic direction and tone
-- Typography (fonts, scale, line-heights)
-- Color palette (primary, secondary, semantic, neutrals)
-- Spacing system
-- Motion/animation principles
-- Component patterns
-- Accessibility requirements
-
-Be opinionated and distinctive - avoid generic "AI slop" patterns.
+./.design-sprint-staging/
+├── round-1/
+│   ├── spec.json
+│   ├── code/
+│   │   ├── Component.jsx (or index.html for html format)
+│   │   └── ...
+│   └── review.json
+├── round-2/
+│   └── ...
+└── color-palette-preview.html
 ```
 
-Store the design specification for use in subsequent phases.
+This ensures:
+- Reviewer reads actual files, not stale cache
+- Each iteration is preserved
+- Easy to compare rounds
+- Clear audit trail
 
-## Phase 2: Code Generation (Gemini)
+## Workflow
 
-Call the Gemini API to generate frontend code.
+### Phase 1: Design Specification
 
-Execute the gemini-generate.py script:
+Launch **design-strategist** agent:
+```
+Create a design specification for: $ARGUMENTS
+Output format: [--format value or ask user]
+```
 
+The agent will:
+1. Ask user about output format (if not specified)
+2. Interview for aesthetic preferences
+3. Ask about existing brand colors or generate palette
+4. **Create color palette preview** at `./.design-sprint-staging/color-palette-preview.html`
+5. Ask user to confirm colors (open preview in browser)
+6. Output final JSON design spec
+
+**Write spec to**: `./.design-sprint-staging/round-1/spec.json`
+
+### Phase 2: Code Generation
+
+Call Gemini API with the design spec:
 ```bash
-echo '{"design_spec": "[SPEC FROM PHASE 1]", "framework": "[FRAMEWORK]", "context": "[CONTEXT]"}' | python3 ${CLAUDE_PLUGIN_ROOT}/scripts/gemini-generate.py
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/gemini-generate.py
 ```
 
-If the API call fails, stop immediately and report the error (fail-fast).
+**Write generated code to staging**:
+- HTML format: `./.design-sprint-staging/round-N/code/index.html`
+- React format: `./.design-sprint-staging/round-N/code/*.jsx` + `*.css`
+- Other formats: appropriate file structure
 
-Store the generated code for review.
+### Phase 3: Code Review
 
-## Phase 3: Code Review (Opus)
-
-Launch the **opus-reviewer** agent to evaluate the generated code:
-
-```
-Review this generated frontend code against the design specification.
-
-## Design Specification
-[SPEC FROM PHASE 1]
-
-## Generated Code
-[CODE FROM PHASE 2]
-
-Evaluate:
-1. Design Fidelity (30%): Typography, colors, spacing match spec
-2. Code Quality (25%): Structure, patterns, maintainability
-3. Accessibility (25%): WCAG compliance, keyboard nav, ARIA
-4. Completeness (20%): All features, no placeholders, responsive
-
-Output structured JSON with:
-- Scores for each dimension (1-10)
-- Overall weighted score
-- Pass/fail decision (threshold: 7.0, or 8.0 if --strict)
-- List of issues (critical/major/minor)
-- Specific fix recommendations
-```
-
-## Phase 4: Adaptation (if not passed)
-
-If the review score is below threshold and rounds remain:
-
-Launch the **adaptation-advisor** agent:
+Launch **opus-reviewer** agent with the staging directory:
 
 ```
-Analyze this code review and prepare iteration guidance.
+Review the generated code in the staging directory.
 
-## Review Results
-[REVIEW FROM PHASE 3]
+Design spec: ./.design-sprint-staging/round-N/spec.json
+Generated code: ./.design-sprint-staging/round-N/code/
 
-## Current Code
-[CODE FROM PHASE 2]
-
-## Design Specification
-[SPEC FROM PHASE 1]
-
-## Round Status
-Current round: [N] of [MAX_ROUNDS]
-
-Provide:
-1. Priority fixes for next iteration
-2. Elements to preserve (working code)
-3. Specific Gemini prompt for regeneration
-4. User progress message
+Read the files and evaluate against the design specification.
 ```
 
-Then return to Phase 2 with the updated prompt.
+The reviewer will:
+1. Read spec.json
+2. Read all code files in the code/ directory
+3. Evaluate against spec
+4. Output review JSON
 
-## Phase 5: Output
+**Write review to**: `./.design-sprint-staging/round-N/review.json`
 
-When the review passes OR maximum rounds reached:
+### Phase 4: Adaptation (if not passed)
 
-### If Passed:
+If score < threshold AND rounds remain:
 
-Present the final code to the user:
+Launch **adaptation-advisor** agent with:
+```
+Review the iteration at: ./.design-sprint-staging/round-N/
+- spec.json: design specification
+- code/: generated code
+- review.json: review results
 
+Prepare guidance for round N+1.
+```
+
+Agent outputs iteration prompt. Return to Phase 2 for next round.
+
+### Phase 5: Output
+
+**If passed:**
 ```
 Design Sprint Complete!
-
 Final Score: [SCORE]/10
-Rounds Used: [N] of [MAX_ROUNDS]
+Rounds Used: [N] of [MAX]
+Format: [html/react/vue/etc]
 
-Quality Summary:
-- Design Fidelity: [SCORE]/10
-- Code Quality: [SCORE]/10
-- Accessibility: [SCORE]/10
-- Completeness: [SCORE]/10
-
-Generated Files:
-[LIST OF COMPONENTS/FILES]
+Staged at: ./.design-sprint-staging/round-N/code/
 ```
 
-Ask user to confirm output directory, then write files using the Write tool.
+Ask user to confirm output directory, then:
+- Copy from staging to final output directory
+- Optionally clean up staging directory
 
-### If Maximum Rounds Reached (not passed):
+For HTML format: Single file can be opened directly in browser.
+For framework formats: Component files ready for integration.
 
+**If max rounds reached:**
 ```
-Design Sprint finished after [MAX_ROUNDS] rounds.
+Sprint finished after [N] rounds.
+Final Score: [SCORE]/10 (below threshold)
+Remaining issues: [LIST]
 
-Final Score: [SCORE]/10 (below [THRESHOLD] threshold)
-
-Remaining Issues:
-[LIST CRITICAL/MAJOR ISSUES]
+Staged at: ./.design-sprint-staging/round-N/code/
 
 Options:
-1. Accept code with known limitations
-2. Continue with manual iteration
-3. Restart with simplified requirements
-
-The generated code is available below for manual use if desired.
+1. Accept current code (copy to output)
+2. Continue manual iteration
+3. Restart with different requirements
 ```
 
-## Round Tracking
+## Quick Preview
 
-Display progress at each phase:
-
-```
-═══════════════════════════════════════════════════
-  DESIGN SPRINT: Round [N] of [MAX_ROUNDS]
-═══════════════════════════════════════════════════
-
-[Current Phase]: [Status]
-Score Target: [THRESHOLD]
-```
+For any round, user can preview the generated code:
+- HTML: Open `./.design-sprint-staging/round-N/code/index.html` in browser
+- React: Need to set up dev server (or use color palette preview for quick visual check)
 
 ## Error Handling
 
-### Gemini API Failure
+**Gemini API failure:**
 ```
-ERROR: Gemini API call failed
-
-[ERROR MESSAGE]
-
-The design sprint cannot continue without code generation.
-
-Troubleshooting:
-1. Verify GEMINI_API_KEY environment variable is set
-2. Check API quota at https://makersuite.google.com/
-3. Retry with: /design-sprint [same arguments]
+ERROR: Gemini API failed - [message]
+Check: GEMINI_API_KEY set? API quota available?
 ```
 
-### Invalid Arguments
+**Invalid arguments:**
 ```
-ERROR: Invalid arguments
+Usage: /design-sprint "description" [--rounds=N] [--format=X] [--strict]
 
-Usage: /design-sprint "[description]" [options]
-
-Options:
-  --rounds=N      Maximum rounds (default: 3)
-  --framework=X   Target framework (default: react)
-  --strict        Require score > 8 to pass
-  --output=DIR    Output directory
-  --context=TEXT  Additional codebase context
-
-Example:
-/design-sprint "Dashboard with charts and data tables" --framework=react --rounds=3
+Formats: html, react, vue, svelte, nextjs
 ```
 
-## File Output Structure
+## Cleanup
 
-When writing files, organize as:
-
-```
-[output-dir]/
-├── components/
-│   ├── [ComponentName].tsx
-│   └── ...
-├── styles/
-│   └── globals.css (or tailwind additions)
-├── hooks/
-│   └── [useHookName].ts (if needed)
-└── utils/
-    └── [utilName].ts (if needed)
+After successful completion, optionally remove staging:
+```bash
+rm -rf ./.design-sprint-staging/
 ```
 
-## Example Execution
-
-```
-User: /design-sprint "Modern dashboard for agricultural sensor data with
-      real-time charts, dark theme, and mobile support" --rounds=3 --framework=react
-
-═══════════════════════════════════════════════════
-  DESIGN SPRINT: Round 1 of 3
-═══════════════════════════════════════════════════
-
-[Design Strategist]: Creating specification...
-✓ Aesthetic: Industrial-organic hybrid
-✓ Typography: Space Grotesk + IBM Plex Mono
-✓ Colors: Forest green primary, amber alerts
-
-[Gemini 3 Pro]: Generating code...
-✓ Generated 12 components, 847 lines
-
-[Opus Reviewer]: Evaluating quality...
-- Design Fidelity: 7/10
-- Code Quality: 8/10
-- Accessibility: 5/10 (critical issues)
-- Completeness: 7/10
-Overall: 6.7/10 - NEEDS ITERATION
-
-[Adaptation Advisor]: Preparing round 2...
-Focus: Accessibility fixes (focus states, ARIA labels)
-
-═══════════════════════════════════════════════════
-  DESIGN SPRINT: Round 2 of 3
-═══════════════════════════════════════════════════
-
-[Gemini 3 Pro]: Regenerating with fixes...
-✓ Updated 12 components
-
-[Opus Reviewer]: Re-evaluating...
-- Design Fidelity: 8/10
-- Code Quality: 8/10
-- Accessibility: 8/10
-- Completeness: 8/10
-Overall: 8.0/10 - PASSED!
-
-═══════════════════════════════════════════════════
-  DESIGN SPRINT COMPLETE
-═══════════════════════════════════════════════════
-
-Final Score: 8.0/10
-Rounds Used: 2 of 3
-
-Ready to write files to ./components/
-Proceed? (y/n)
-```
+Or keep it for reference/comparison.

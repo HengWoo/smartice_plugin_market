@@ -2,6 +2,17 @@
 
 Extended guidelines for creating distinctive, production-quality frontend designs.
 
+## Design Thinking
+
+Before coding, commit to a BOLD aesthetic direction:
+
+- **Purpose**: What problem does this interface solve? Who uses it?
+- **Tone**: Pick a distinctive direction - don't be safe or generic
+- **Constraints**: Framework, performance, accessibility requirements
+- **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
+
+**CRITICAL**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work - the key is intentionality, not intensity.
+
 ## Anti-Patterns to Avoid
 
 ### "AI Slop" Characteristics
@@ -13,12 +24,14 @@ These patterns immediately signal low-effort, AI-generated design:
 - System font stack without intentionality
 - Inconsistent font weights
 - Poor line-height (too tight or too loose)
+- **NEVER converge on common choices** (e.g., Space Grotesk across generations)
 
 **Colors**
 - Purple-to-blue gradients on white backgrounds
 - Oversaturated accent colors
 - No defined neutral scale
 - Colors that don't relate to each other
+- Timid, evenly-distributed palettes
 
 **Layout**
 - Perfectly symmetrical card grids
@@ -31,6 +44,8 @@ These patterns immediately signal low-effort, AI-generated design:
 - Drop shadows on every element
 - Gradient buttons with white text
 - Generic icon libraries without curation
+
+**No design should be the same.** Vary between light and dark themes, different fonts, different aesthetics. Make unexpected choices that feel genuinely designed for the context.
 
 ## Aesthetic Directions
 
@@ -104,6 +119,46 @@ Motion: Gentle, flowing animations
 
 **Good for**: Wellness, sustainability, food & beverage
 
+### Additional Directions
+
+Explore these for inspiration:
+- **Playful/Toy-like**: Bright colors, rounded shapes, whimsical elements
+- **Editorial/Magazine**: Strong typography hierarchy, dramatic whitespace, grid mastery
+- **Art Deco/Geometric**: Bold geometry, metallic accents, symmetry with flair
+- **Soft/Pastel**: Muted tones, gentle gradients, calming presence
+- **Industrial/Utilitarian**: Exposed grids, functional typography, raw materials aesthetic
+- **Luxury/Refined**: Restrained elegance, premium materials, subtle sophistication
+
+## Spatial Composition
+
+### Breaking the Grid
+
+Don't settle for predictable layouts:
+- **Asymmetry**: Off-center focal points, uneven columns
+- **Overlap**: Elements that break boundaries, layered depth
+- **Diagonal flow**: Angled sections, dynamic movement
+- **Grid-breaking elements**: Hero images that bleed, floating components
+- **Generous negative space** OR **controlled density** - both work, commit to one
+
+### Visual Hierarchy
+
+- Use size, color, and position to guide the eye
+- One primary focal point per viewport
+- Progressive disclosure of information
+
+## Backgrounds & Visual Details
+
+Create atmosphere and depth rather than defaulting to solid colors:
+
+- **Gradient meshes**: Organic color transitions, not linear gradients
+- **Noise textures**: Subtle grain for warmth and tactility
+- **Geometric patterns**: Repeated shapes, lines, grids as texture
+- **Layered transparencies**: Overlapping elements with opacity
+- **Dramatic shadows**: Deep, directional shadows for depth
+- **Decorative borders**: Unique line treatments, not just 1px solid
+- **Custom cursors**: Contextual cursor changes
+- **Grain overlays**: Film-like texture for organic feel
+
 ## Typography Deep Dive
 
 ### Font Pairing Strategies
@@ -122,6 +177,8 @@ Motion: Gentle, flowing animations
 - Two geometric sans-serifs
 - Two humanist fonts
 - Creates cohesion, requires size/weight contrast
+
+Choose fonts that are beautiful, unique, and interesting. Pair a distinctive display font with a refined body font. Unexpected, characterful choices elevate the design.
 
 ### Type Scale Systems
 
@@ -170,6 +227,8 @@ xl: 2.618rem
 - Different hue for visual interest
 - Used for accents, CTAs, highlights
 
+**Dominant colors with sharp accents outperform timid, evenly-distributed palettes.**
+
 **Step 3: Define Semantic Colors**
 ```css
 --color-success: #10B981;  /* Green - positive actions */
@@ -207,6 +266,14 @@ xl: 2.618rem
 - axe DevTools
 
 ## Motion Design
+
+### High-Impact Motion
+
+Focus on moments that create delight:
+- **Page load orchestration**: Staggered reveals with `animation-delay` create more impact than scattered micro-interactions
+- **Scroll-triggered animations**: Elements that respond to scroll position
+- **Hover states that surprise**: Unexpected but delightful interactions
+- **State transitions**: Smooth changes between UI states
 
 ### Timing Functions
 
@@ -255,6 +322,15 @@ xl: 2.618rem
   }
 }
 ```
+
+## Implementation Complexity
+
+**Match implementation complexity to the aesthetic vision:**
+
+- **Maximalist designs** need elaborate code with extensive animations, layered effects, and rich interactions
+- **Minimalist designs** need restraint, precision, and careful attention to spacing, typography, and subtle details
+
+Elegance comes from executing the vision fully, not from complexity alone.
 
 ## Component Patterns
 
@@ -341,3 +417,9 @@ Interactive: Hover state, cursor pointer
 - [ ] Consistent navigation
 - [ ] Error messages helpful
 - [ ] No auto-playing media
+
+## Creative Encouragement
+
+Remember: You are capable of extraordinary creative work. Don't hold back - show what can truly be created when thinking outside the box and committing fully to a distinctive vision.
+
+Interpret creatively. Make unexpected choices. Every design should feel genuinely crafted for its specific context.

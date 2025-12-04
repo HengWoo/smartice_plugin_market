@@ -1,8 +1,8 @@
 # SmartIce Plugin Marketplace
 
-A Claude Code plugin marketplace featuring design tools for multi-model frontend development.
+A shared Claude Code plugin marketplace for the SmartIce organization. Features design tools, database utilities, and developer productivity plugins.
 
-Claude Code 插件市场，提供多模型前端开发设计工具。
+SmartIce 组织的共享 Claude Code 插件市场。提供设计工具、数据库工具和开发者生产力插件。
 
 ---
 
@@ -19,6 +19,15 @@ Add this marketplace to Claude Code:
 ---
 
 ## Available Plugins | 可用插件
+
+| Plugin | Description | Author |
+|--------|-------------|--------|
+| **design-council** | Multi-model frontend design with Opus + Gemini | SmartIce |
+| **design-council-lite** | Lightweight design workflow | SmartIce |
+| **db-tools** | Database design review & validation | 杨睿祺 |
+| **smartice-tools** | Marketplace contribution tools | SmartIce |
+
+---
 
 ### design-council
 
@@ -60,6 +69,30 @@ Lightweight version for simpler multi-model design workflows.
 **Install | 安装：**
 ```
 /plugin install design-council-lite@smartice-plugin-market
+```
+
+---
+
+### db-tools
+
+Database design review toolkit with normalization checks, anti-pattern detection, and Supabase RLS validation.
+
+数据库设计审查工具集，包含规范化检查、反模式检测和 Supabase RLS 验证。
+
+**Features | 功能：**
+- 11 automated schema checks | 11 项自动化检查
+- 3NF normalization validation | 3NF 规范化验证
+- 7 anti-pattern detections | 7 种反模式识别
+- Supabase RLS policy checks | Supabase RLS 策略检查
+
+**Install | 安装：**
+```
+/plugin install db-tools@smartice-plugin-market
+```
+
+**Usage | 使用：**
+```
+"review database" or "check schema" or "审查数据库设计"
 ```
 
 ---
@@ -146,15 +179,23 @@ your-plugin/
 
 ## Requirements | 环境要求
 
-Both design plugins require a Gemini API key:
+### Design Plugins (design-council, design-council-lite)
 
-两个设计插件都需要 Gemini API 密钥：
+Require a Gemini API key for code generation:
+
+设计插件需要 Gemini API 密钥用于代码生成：
 
 ```bash
 export GEMINI_API_KEY="your-api-key-here"
 ```
 
 Get your API key | 获取密钥：https://makersuite.google.com/app/apikey
+
+### Database Plugin (db-tools)
+
+Requires database connection. Works with Supabase or any PostgreSQL database.
+
+需要数据库连接。支持 Supabase 或任何 PostgreSQL 数据库。
 
 ---
 

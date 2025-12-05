@@ -11,6 +11,7 @@ Usage:
 Output: HTML content to stdout
 """
 
+import html
 import json
 import sys
 from typing import List, Dict
@@ -261,8 +262,8 @@ def generate_palette_preview_html(
                 {mockup_html}
             </div>
             <div class="palette-info">
-                <h3>{palette['name']}</h3>
-                <p>{palette.get('description', '')}</p>
+                <h3>{html.escape(palette['name'])}</h3>
+                <p>{html.escape(palette.get('description', ''))}</p>
                 <div class="swatches">{swatches}</div>
             </div>
         </div>
@@ -273,7 +274,7 @@ def generate_palette_preview_html(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Choose Your Palette - {project}</title>
+    <title>Choose Your Palette - {html.escape(project)}</title>
     <style>
         :root {{
             {css_vars}
@@ -480,7 +481,7 @@ def generate_palette_preview_html(
     <div class="header">
         <h1>Choose Your Color Palette</h1>
         <p>Click on the option that best matches your vision</p>
-        <div class="project-badge">{project}</div>
+        <div class="project-badge">{html.escape(project)}</div>
     </div>
 
     <div class="options-grid">

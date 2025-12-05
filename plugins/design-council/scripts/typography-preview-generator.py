@@ -11,6 +11,7 @@ Usage:
 Output: HTML content to stdout
 """
 
+import html
 import json
 import sys
 from typing import List, Dict
@@ -78,7 +79,7 @@ def generate_typography_preview_html(typography: List[Dict], project: str) -> st
 
             <div class="typography-preview">
                 <div class="sample-heading" style="font-family: '{display_font}', serif;">
-                    {project.title()}
+                    {html.escape(project.title())}
                 </div>
 
                 <div class="sample-subheading" style="font-family: '{display_font}', serif;">
@@ -102,8 +103,8 @@ def generate_typography_preview_html(typography: List[Dict], project: str) -> st
             </div>
 
             <div class="typography-info">
-                <h3>{option['name']}</h3>
-                <p class="description">{option.get('description', '')}</p>
+                <h3>{html.escape(option['name'])}</h3>
+                <p class="description">{html.escape(option.get('description', ''))}</p>
                 <div class="font-stack">
                     <div class="font-item">
                         <span class="font-label">Display</span>
@@ -127,7 +128,7 @@ def generate_typography_preview_html(typography: List[Dict], project: str) -> st
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Choose Your Typography - {project}</title>
+    <title>Choose Your Typography - {html.escape(project)}</title>
     {font_imports}
     <style>
         * {{
@@ -402,7 +403,7 @@ def generate_typography_preview_html(typography: List[Dict], project: str) -> st
     <div class="header">
         <h1>Choose Your Typography</h1>
         <p>Click on the font pairing that best matches your vision</p>
-        <div class="project-badge">{project}</div>
+        <div class="project-badge">{html.escape(project)}</div>
     </div>
 
     <div class="options-grid">

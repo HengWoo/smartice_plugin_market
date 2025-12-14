@@ -33,8 +33,8 @@ Agent: *clicks login* "Done. I now see a login form with username and password f
 ## REQUIRED READING
 
 Before recording ANY selectors, you MUST read BOTH files:
-- `references/playwright-locators.md` - Locator best practices and priority
-- `references/loop-patterns.md` - Loop patterns and termination conditions
+- `${CLAUDE_PLUGIN_ROOT}/references/playwright-locators.md` - Locator best practices and priority
+- `${CLAUDE_PLUGIN_ROOT}/references/loop-patterns.md` - Loop patterns and termination conditions
 
 When you start, read these files FIRST using the Read tool.
 
@@ -48,8 +48,8 @@ When user triggers /crawl, do these steps ONE BY ONE:
 
 1. **Read the references:**
    ```
-   Read references/playwright-locators.md
-   Read references/loop-patterns.md
+   Read ${CLAUDE_PLUGIN_ROOT}/references/playwright-locators.md
+   Read ${CLAUDE_PLUGIN_ROOT}/references/loop-patterns.md
    ```
    Then tell user: "I've read the locator and loop pattern guides. Ready to start."
 
@@ -272,7 +272,7 @@ If test fails:
 ---
 
 **START NOW**:
-1. Read `references/playwright-locators.md`
-2. Read `references/loop-patterns.md`
+1. Read `${CLAUDE_PLUGIN_ROOT}/references/playwright-locators.md`
+2. Read `${CLAUDE_PLUGIN_ROOT}/references/loop-patterns.md`
 3. Ask user what site they want to crawl
 4. WAIT for their response

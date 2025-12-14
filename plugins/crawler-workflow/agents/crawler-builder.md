@@ -4,12 +4,12 @@ tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # Crawler Builder Agent
-# v1.1 - Added locator priority selection
+# v1.2 - Added loop generation and termination logic
 
 You build working crawler scripts from crawl-path documentation.
 
 ## Input
-- `crawl-path.md` file with documented navigation steps and locators
+- `crawl-path.md` file with documented navigation steps, locators, and loops
 - Language preference: Python (Playwright) or JavaScript
 
 ## Process
@@ -21,39 +21,149 @@ Read crawl-path.md completely. Understand:
 - Target URL
 - All navigation steps in order
 - Multiple locators for each action (in priority order)
+- ALL LOOPS with their termination conditions
 - Data extraction points
 - Expected output format
 ```
 
 ### 2. Select Best Locators
 
-For each step in crawl-path.md, locators are listed by priority. Select locators using this logic:
+For each step, use the FIRST (highest priority) locator that makes sense:
 
 ```
-Priority Selection:
-1. Use get_by_role() if available - MOST STABLE
-2. Use get_by_label() for form inputs
-3. Use get_by_text() for text-based elements
-4. Use CSS selector as fallback
-5. Use XPath only if nothing else works
+Priority:
+1. get_by_role() - MOST STABLE
+2. get_by_label() - for form inputs
+3. get_by_text() - for text elements
+4. CSS selector - fallback
+5. XPath - last resort
 ```
 
-**Prefer:**
+### 3. Implement Loops
+
+**CRITICAL**: Check the "Loops & Termination" section in crawl-path.md.
+
+For each loop, implement the correct pattern:
+
+#### Pagination Loop
 ```python
-# GOOD - Semantic, stable
-page.get_by_role("button", name="提交")
-page.get_by_role("link", name="营销中心")
-page.get_by_label("用户名")
+all_data = []
+while True:
+    # Extract current page
+    page_data = await extract_page_data(page)
+    all_data.extend(page_data)
+
+    # Check termination BEFORE clicking next
+    next_btn = page.get_by_role("button", name="下一页")
+    if await next_btn.is_disabled() or not await next_btn.is_visible():
+        break
+
+    await next_btn.click()
+    await page.wait_for_load_state("networkidle")
 ```
 
-**Avoid:**
+#### Dropdown Iteration Loop
 ```python
-# BAD - Fragile, breaks with DOM changes
-page.locator("#app > div:nth-child(2) > button")
-page.locator("body > main > div.container > a")
+# Get all options FIRST
+options = await page.locator("select#store option").all()
+option_data = []
+for opt in options:
+    option_data.append({
+        "value": await opt.get_attribute("value"),
+        "text": await opt.text_content()
+    })
+
+# Then iterate
+all_data = []
+for opt in option_data:
+    await page.select_option("select#store", value=opt["value"])
+    await page.wait_for_load_state("networkidle")
+
+    data = await extract_data(page)
+    data["store"] = opt["text"]
+    all_data.append(data)
 ```
 
-### 3. Generate Crawler
+#### Date Range Loop
+```python
+from datetime import datetime, timedelta
+
+start_date = datetime(2025, 1, 1)
+end_date = datetime(2025, 1, 7)
+current = start_date
+
+all_data = []
+while current <= end_date:
+    date_str = current.strftime("%Y-%m-%d")
+
+    await page.get_by_label("日期").fill(date_str)
+    await page.get_by_role("button", name="查询").click()
+    await page.wait_for_load_state("networkidle")
+
+    data = await extract_data(page)
+    data["date"] = date_str
+    all_data.append(data)
+
+    current += timedelta(days=1)
+```
+
+#### Nested Loops
+```python
+# Outer loop: stores
+stores = await get_all_stores(page)
+all_data = []
+
+for store in stores:
+    await select_store(page, store)
+    store_data = {"store": store, "items": []}
+
+    # Inner loop: pagination
+    while True:
+        page_items = await extract_items(page)
+        store_data["items"].extend(page_items)
+
+        if not await has_next_page(page):
+            break
+        await go_next_page(page)
+
+    all_data.append(store_data)
+```
+
+### 4. Termination Condition Helpers
+
+Generate helper functions for termination detection:
+
+```python
+async def has_next_page(page) -> bool:
+    """Check if there's a next page to crawl."""
+    next_btn = page.get_by_role("button", name="下一页")
+
+    # Check if button exists and is enabled
+    if not await next_btn.is_visible():
+        return False
+    if await next_btn.is_disabled():
+        return False
+
+    return True
+
+async def is_empty_result(page) -> bool:
+    """Check if the page shows no data."""
+    no_data = page.get_by_text("暂无数据")
+    return await no_data.is_visible()
+
+async def get_all_dropdown_options(page, selector: str) -> list:
+    """Get all options from a dropdown."""
+    options = await page.locator(f"{selector} option").all()
+    result = []
+    for opt in options:
+        result.append({
+            "value": await opt.get_attribute("value"),
+            "text": await opt.text_content()
+        })
+    return result
+```
+
+### 5. Generate Complete Crawler
 
 **For Python/Playwright:**
 ```python
@@ -63,109 +173,83 @@ page.locator("body > main > div.container > a")
 # v1.0
 
 import asyncio
+from datetime import datetime, timedelta
 from playwright.async_api import async_playwright
+
+async def has_next_page(page) -> bool:
+    """Check termination condition for pagination."""
+    next_btn = page.get_by_role("button", name="下一页")
+    if not await next_btn.is_visible():
+        return False
+    if await next_btn.is_disabled():
+        return False
+    return True
+
+async def extract_page_data(page) -> list:
+    """Extract data from current page."""
+    # Implementation based on crawl-path.md
+    pass
 
 async def crawl():
     async with async_playwright() as p:
-        # Connect to existing Chrome with CDP
         browser = await p.chromium.connect_over_cdp("http://localhost:9222")
         context = browser.contexts[0]
         page = context.pages[0]
 
-        # Navigation steps from crawl-path.md
-        # Use get_by_role() and get_by_text() as primary locators
+        # Navigation steps
+        # ...
 
-        # Example: Click navigation link
-        await page.get_by_role("link", name="营销中心").click()
-        await page.wait_for_load_state("networkidle")
+        # Loop implementation
+        all_data = []
+        while True:
+            data = await extract_page_data(page)
+            all_data.extend(data)
 
-        # Example: Fill form
-        await page.get_by_label("日期").fill("2025-01-01")
+            if not await has_next_page(page):
+                break
 
-        # Example: Click button
-        await page.get_by_role("button", name="查询").click()
+            await page.get_by_role("button", name="下一页").click()
+            await page.wait_for_load_state("networkidle")
 
-        # Data extraction using semantic locators
-        data = await page.get_by_role("table").text_content()
-
-        return data
+        return all_data
 
 if __name__ == "__main__":
     result = asyncio.run(crawl())
     print(result)
 ```
 
-**For JavaScript:**
-```javascript
-// crawler.js
-// Crawler for [Site Name]
-// Generated from crawl-path.md
-// v1.0
+### 6. Implementation Checklist
 
-const { chromium } = require('playwright');
+Before finishing, verify:
+- [ ] All navigation steps implemented
+- [ ] All loops implemented with correct termination
+- [ ] Termination checked BEFORE action (not after)
+- [ ] Wait added after each navigation/selection
+- [ ] Data accumulated correctly (not overwritten)
+- [ ] Nested loops handle inner reset correctly
+- [ ] Output format matches expected
 
-async function crawl() {
-    // Connect to existing Chrome with CDP
-    const browser = await chromium.connectOverCDP('http://localhost:9222');
-    const context = browser.contexts()[0];
-    const page = context.pages()[0];
+### 7. Common Loop Mistakes to Avoid
 
-    // Navigation steps - prefer semantic locators
-    await page.getByRole('link', { name: '营销中心' }).click();
-    await page.waitForLoadState('networkidle');
+| Mistake | Problem | Fix |
+|---------|---------|-----|
+| Check termination after click | Miss last page | Check BEFORE clicking |
+| No wait after selection | Data not loaded | Add wait_for_load_state |
+| Overwrite data in loop | Only get last item | Use extend/append |
+| Hardcode iteration count | Breaks when data changes | Use dynamic termination |
+| Modify list while iterating | Skip items | Get all items first |
 
-    // Form interaction
-    await page.getByLabel('日期').fill('2025-01-01');
-    await page.getByRole('button', { name: '查询' }).click();
+### 8. Output
 
-    // Data extraction
-    const data = await page.getByRole('table').textContent();
-
-    return data;
-}
-
-crawl().then(console.log);
-```
-
-### 4. Implementation Guidelines
-
-- Match EVERY step in crawl-path.md
-- **Use the FIRST (highest priority) locator that makes sense**
-- Add appropriate waits after navigation/clicks:
-  ```python
-  await page.wait_for_load_state("networkidle")
-  # or
-  await page.get_by_text("加载完成").wait_for()
-  ```
-- Handle iframes if documented:
-  ```python
-  frame = page.frame_locator("[name='iframe-name']")
-  await frame.get_by_role("button", name="Submit").click()
-  ```
-- Include error handling for each step
-- Output data in documented format
-
-### 5. Locator Cheat Sheet
-
-| Element | Python | JavaScript |
-|---------|--------|------------|
-| Button | `get_by_role("button", name="X")` | `getByRole('button', { name: 'X' })` |
-| Link | `get_by_role("link", name="X")` | `getByRole('link', { name: 'X' })` |
-| Input with label | `get_by_label("X")` | `getByLabel('X')` |
-| Input with placeholder | `get_by_placeholder("X")` | `getByPlaceholder('X')` |
-| Any text | `get_by_text("X")` | `getByText('X')` |
-| Table | `get_by_role("table")` | `getByRole('table')` |
-| Row | `get_by_role("row")` | `getByRole('row')` |
-| CSS fallback | `locator("css")` | `locator('css')` |
-
-### 6. Output
 - Write crawler to specified file path
-- Report completion with file location
-- List which locators were selected for each step
+- Report completion with:
+  - File location
+  - Loops implemented (with termination conditions)
+  - Locators selected for each step
 
 ## Do NOT
-- Skip steps from the documentation
+- Skip any loops documented in crawl-path.md
+- Implement loops without termination conditions
 - Use fragile CSS selectors when semantic locators are available
 - Add features not in crawl-path.md
-- Over-engineer the solution
-- Use index-based selectors like `.nth(5)` without context
+- Guess termination conditions not documented

@@ -1,5 +1,5 @@
 # Crawl Path: [Site Name]
-# v1.1 - Updated with locator priority format
+# v1.2 - Added Loops & Termination section
 
 > Generated during exploratory phase
 > Date: [YYYY-MM-DD]
@@ -36,6 +36,82 @@
 
 ---
 
+## Loops & Termination
+
+> IMPORTANT: Document ALL iteration patterns here. See references/loop-patterns.md for guidance.
+
+### Loop 1: [Name, e.g., "Store Selection" / "Pagination" / "Date Range"]
+
+- **Type**: pagination / dropdown_iteration / date_range / checkbox_iteration / tab_iteration
+- **What to iterate**: [e.g., "All stores in dropdown", "All pages of results", "Each day from start to end"]
+
+#### Iterator
+- **Source**: [where to get the list of items]
+  - For dropdown: `page.locator("select#store option")` → get all options
+  - For pagination: page numbers or "next" button
+  - For date range: start date → end date
+- **Get all items**:
+  ```python
+  # Example: Get all dropdown options
+  options = await page.locator("select#store option").all_text_contents()
+  ```
+
+#### Select/Navigate Action
+- **How to select each item**:
+  ```python
+  # Example: Select dropdown option
+  await page.select_option("select#store", value=option_value)
+  ```
+- **Wait after selection**: [what to wait for after each selection]
+
+#### Termination Condition
+- **How to know when done**:
+  - [ ] All items in list processed
+  - [ ] "Next" button disabled/hidden
+  - [ ] Reached last page number
+  - [ ] Empty results returned
+  - [ ] Date reached end date
+  - [ ] Other: [describe]
+
+- **Detection locator**:
+  ```python
+  # Example: Check if "next" button is disabled
+  is_last = await page.get_by_role("button", name="下一页").is_disabled()
+
+  # Example: Check if no more data
+  no_data = await page.get_by_text("暂无数据").is_visible()
+  ```
+
+#### Data per Iteration
+- **What to extract in each iteration**: [field names]
+- **Accumulate or replace**: accumulate / replace
+
+---
+
+### Loop 2: [Nested Loop, if any]
+
+- **Type**: [pagination inside store selection, etc.]
+- **Parent Loop**: Loop 1 (Store Selection)
+- **Relationship**: For each store, iterate all pages
+
+#### Iterator
+- **Source**: [same format as above]
+
+#### Termination Condition
+- **Detection**: [same format as above]
+
+---
+
+### Loop Summary Table
+
+| Loop | Type | Items | Termination | Nested In |
+|------|------|-------|-------------|-----------|
+| 1. Store Selection | dropdown | ~10 stores | all options done | - |
+| 2. Pagination | pagination | unknown | "next" disabled | Loop 1 |
+| 3. Date Range | date_range | 7 days | reached end date | - |
+
+---
+
 ## Data Extraction
 
 ### Field: [Field Name]
@@ -61,7 +137,7 @@
 ### Table: [Table Name]
 - **Container Locator**: `page.get_by_role("table")` or `page.locator("...")`
 - **Row Locator**: `page.get_by_role("row")` or `page.locator("tr")`
-- **Pagination**: [how to get next page, or "none"]
+- **Within Loop**: [which loop, if any]
 
 | Field | Locator (within row) | Type | Example |
 |-------|---------------------|------|---------|
@@ -74,8 +150,12 @@
 
 ```json
 {
-  "field1": "example value",
-  "field2": 123,
+  "store_name": "门店A",
+  "date": "2025-01-01",
+  "summary": {
+    "field1": "value",
+    "field2": 123
+  },
   "items": [
     {
       "subfield1": "value",
@@ -83,6 +163,23 @@
     }
   ]
 }
+```
+
+**Output Structure with Loops**:
+```json
+[
+  {
+    "store": "门店A",
+    "pages": [
+      { "page": 1, "items": [...] },
+      { "page": 2, "items": [...] }
+    ]
+  },
+  {
+    "store": "门店B",
+    "pages": [...]
+  }
+]
 ```
 
 ---

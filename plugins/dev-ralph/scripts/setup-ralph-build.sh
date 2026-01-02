@@ -61,7 +61,8 @@ SPEC_COUNT=$(ls -1 "$RALPH_DIR/specs" 2>/dev/null | wc -l | tr -d ' ')
 PLAN_ITEMS=$(grep -c "^- " "$PLAN_FILE" 2>/dev/null || echo "0")
 
 # Parse frontmatter from PROMPT.md
-# Note: We strip YAML comments (everything after #) to avoid invalid JSON
+# Strip trailing YAML comments (e.g., "500  # comment" → "500") for clean shell variable values
+# Note: This is safe for numeric/enum fields but would break string values containing #
 FRONTMATTER=$(sed -n '/^---$/,/^---$/{ /^---$/d; p; }' "$PROMPT_FILE" 2>/dev/null || echo "")
 ITERATION_LIMIT=$(echo "$FRONTMATTER" | grep '^iteration_limit:' | sed 's/iteration_limit: *//' | sed 's/#.*//' | tr -d ' ' || echo "500")
 RETRY_LIMIT=$(echo "$FRONTMATTER" | grep '^retry_limit:' | sed 's/retry_limit: *//' | sed 's/#.*//' | tr -d ' ' || echo "5")

@@ -98,9 +98,11 @@ Pick the most important unfinished item from IMPLEMENTATION_PLAN.md and implemen
 Your context window is precious. Use subagents to avoid filling it with search output.
 
 ### MUST Use Subagent (Task tool with subagent_type)
-- **Searching across >5 files** → `subagent_type=Explore`
+- **Searching across >5 files** → `subagent_type=Explore` (built-in fast search)
 - **Finding all usages of a function** → `subagent_type=Explore`
 - **Understanding unfamiliar code area** → `subagent_type=Explore`
+
+Note: "Explore" is a built-in Claude Code agent optimized for codebase exploration.
 
 ### Direct Tools OK
 - Reading a specific known file → Read tool

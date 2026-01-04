@@ -1,4 +1,5 @@
 ---
+name: codebase-explorer
 description: "Context-efficient codebase search during implementation loops"
 tools:
   - Read
@@ -33,12 +34,15 @@ Use the appropriate tool(s):
 - **Read** for specific files once found
 - **Task** to spawn sub-explorers if search is very broad
 
-**Parallel Search**: When searching multiple aspects, spawn up to 3 sub-agents:
+**Parallel Search**: When searching multiple aspects, spawn up to 3 sub-agents using the Task tool:
 ```
-Task(subagent_type=Explore, prompt="Find all imports of X")
-Task(subagent_type=Explore, prompt="Find all usages of X")
-Task(subagent_type=Explore, prompt="Find tests for X")
+# Pseudo-code showing concept - use actual Task tool syntax
+Task(subagent_type="Explore", prompt="Find all imports of X")
+Task(subagent_type="Explore", prompt="Find all usages of X")
+Task(subagent_type="Explore", prompt="Find tests for X")
 ```
+
+Note: "Explore" refers to the built-in fast exploration agent type. For this plugin's context-efficient searching, you can also use `subagent_type="codebase-explorer"`.
 
 ### Step 3: Filter and Synthesize
 

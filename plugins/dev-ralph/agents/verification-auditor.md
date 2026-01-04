@@ -60,24 +60,98 @@ This is describing what the *developer* is focused on for that sprint. It does N
 Execute the following checks:
 
 ```bash
+# Detect package manager
+if [ -f "bun.lockb" ]; then
+  PM="bun"
+elif [ -f "yarn.lock" ]; then
+  PM="yarn"
+elif [ -f "pnpm-lock.yaml" ]; then
+  PM="pnpm"
+elif [ -f "package.json" ]; then
+  PM="npm"
+elif [ -f "pyproject.toml" ] || [ -f "setup.py" ]; then
+  PM="python"
+else
+  echo "⚠️ WARNING: Could not detect package manager"
+  PM=""
+fi
+
+echo "Package manager: $PM"
+
+# Helper to check if script exists in package.json
+script_exists() {
+  [ -f package.json ] && grep -q "\"$1\":" package.json
+}
+
 # Type checking
-bun run type-check 2>&1 || echo "TYPE_CHECK_FAILED"
+if script_exists "type-check"; then
+  $PM run type-check 2>&1
+  [ $? -ne 0 ] && echo "TYPE_CHECK: FAILED" || echo "TYPE_CHECK: PASSED"
+elif [ "$PM" = "python" ] && command -v mypy >/dev/null 2>&1; then
+  mypy . 2>&1
+  [ $? -ne 0 ] && echo "TYPE_CHECK: FAILED" || echo "TYPE_CHECK: PASSED"
+else
+  echo "TYPE_CHECK: SKIPPED (no type-check script found)"
+fi
 
 # Linting
-bun run lint 2>&1 || echo "LINT_FAILED"
+if script_exists "lint"; then
+  $PM run lint 2>&1
+  [ $? -ne 0 ] && echo "LINT: FAILED" || echo "LINT: PASSED"
+elif [ "$PM" = "python" ] && command -v ruff >/dev/null 2>&1; then
+  ruff check . 2>&1
+  [ $? -ne 0 ] && echo "LINT: FAILED" || echo "LINT: PASSED"
+else
+  echo "LINT: SKIPPED (no lint script found)"
+fi
 
 # Test coverage
-bun run test:coverage 2>&1 || echo "COVERAGE_FAILED"
+if script_exists "test:coverage"; then
+  $PM run test:coverage 2>&1
+  [ $? -ne 0 ] && echo "COVERAGE: FAILED" || echo "COVERAGE: PASSED"
+elif [ "$PM" = "python" ] && command -v pytest >/dev/null 2>&1; then
+  pytest --cov 2>&1
+  [ $? -ne 0 ] && echo "COVERAGE: FAILED" || echo "COVERAGE: PASSED"
+else
+  echo "COVERAGE: SKIPPED (no test:coverage script found)"
+fi
 ```
 
-Note: Adapt commands based on the project's package.json or build configuration.
+Note: The above auto-detects the package manager and gracefully handles missing scripts.
 
 ### Step 3: Placeholder Detection
 
 Search for placeholder patterns in source code:
 
 ```bash
-grep -rn "TODO\|FIXME\|unimplemented\|NotImplementedError" src/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" 2>/dev/null || true
+# Check source directory exists first
+if [ ! -d "src/" ]; then
+  echo "⚠️ WARNING: src/ directory not found - checking current directory"
+  search_dir="."
+else
+  search_dir="src/"
+fi
+
+# Search for placeholders with proper error handling
+placeholder_output=$(grep -rn "TODO\|FIXME\|unimplemented\|NotImplementedError" "$search_dir" \
+  --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+  --include="*.py" --include="*.go" 2>&1)
+grep_exit=$?
+
+case $grep_exit in
+  0)
+    echo "❌ Placeholders found:"
+    echo "$placeholder_output"
+    ;;
+  1)
+    echo "✅ No placeholders found"
+    ;;
+  *)
+    echo "⚠️ WARNING: grep failed with exit code $grep_exit"
+    echo "$placeholder_output"
+    echo "Placeholder detection may be incomplete"
+    ;;
+esac
 ```
 
 Also check for common anti-patterns:
@@ -100,11 +174,36 @@ Also check for common anti-patterns:
 Verify that planned files were actually modified:
 
 ```bash
-# Get list of changed files
-git diff --name-only HEAD~1 2>/dev/null || git diff --name-only --cached
+# Get list of changed files with explicit fallback handling
+changed_files=""
+diff_method=""
 
-# Alternative: compare against baseline if stored
-git diff --name-only $(cat .ralph/baseline-commit 2>/dev/null || echo "HEAD~1")
+# Try baseline commit first if stored
+if [ -f .ralph/baseline-commit ]; then
+  baseline=$(cat .ralph/baseline-commit | tr -d '[:space:]')
+  if [ -n "$baseline" ] && git rev-parse --verify "$baseline^{commit}" >/dev/null 2>&1; then
+    changed_files=$(git diff --name-only "$baseline")
+    diff_method="baseline ($baseline)"
+  else
+    echo "⚠️ WARNING: .ralph/baseline-commit contains invalid ref '$baseline'"
+  fi
+fi
+
+# Fall back to HEAD~1
+if [ -z "$changed_files" ]; then
+  if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+    changed_files=$(git diff --name-only HEAD~1)
+    diff_method="HEAD~1"
+  else
+    # Last resort: staged files only (different semantic!)
+    echo "⚠️ WARNING: No previous commit available - checking staged files only"
+    echo "   This checks different files than committed changes!"
+    changed_files=$(git diff --name-only --cached)
+    diff_method="staged files (--cached)"
+  fi
+fi
+
+echo "Diff method: $diff_method"
 ```
 
 **Verification process:**
@@ -135,17 +234,34 @@ Verify that new code is properly integrated into the application.
 If `entry_points` is not configured in frontmatter, auto-detect based on project type:
 
 ```bash
+# Detect project type and find entry points
+entry_points=""
+
 # Python projects
-ls app.py main.py app_*.py *_app.py 2>/dev/null
+if [ -f pyproject.toml ] || [ -f setup.py ] || [ -f requirements.txt ]; then
+  entry_points=$(ls app.py main.py app_*.py *_app.py 2>/dev/null || true)
+fi
 
 # Node.js/TypeScript projects
-ls src/index.ts src/index.js src/app.ts src/server.ts index.ts index.js 2>/dev/null
+if [ -f package.json ]; then
+  entry_points=$(ls src/index.ts src/index.js src/app.ts src/server.ts index.ts index.js 2>/dev/null || true)
+fi
 
 # Go projects
-ls main.go cmd/*/main.go 2>/dev/null
+if [ -f go.mod ]; then
+  entry_points=$(ls main.go cmd/*/main.go internal/cmd/*/main.go 2>/dev/null || true)
+fi
+
+# IMPORTANT: Warn if no entry points found
+if [ -z "$entry_points" ]; then
+  echo "⚠️ WARNING: No entry points auto-detected"
+  echo "Integration verification may be incomplete."
+  echo "Consider adding 'entry_points:' to PROMPT.md frontmatter."
+fi
 ```
 
 Use configured `entry_points` if provided, otherwise use auto-detected files.
+**If no entry points are found, report a WARNING** - integration verification cannot be fully performed.
 
 **Step 6b: Check Import Verification**
 
@@ -236,22 +352,51 @@ Verify that new test files are actually discovered by the test framework.
 Use `build_commands.test_discovery` from frontmatter, or fall back to auto-detection:
 
 ```bash
-# If configured in frontmatter:
+# If configured in frontmatter, use that command:
 # build_commands:
 #   test_discovery: "bun run test --listTests"
 
-# Auto-detection fallbacks by framework:
+# Auto-detection fallbacks by framework with proper error handling:
+run_discovery() {
+  local cmd="$1"
+  local output
+  local exit_code
+
+  output=$($cmd 2>&1)
+  exit_code=$?
+
+  case $exit_code in
+    0)
+      echo "$output"
+      return 0
+      ;;
+    127)
+      echo "⚠️ Command not found: $cmd"
+      return 127
+      ;;
+    *)
+      echo "⚠️ Discovery command failed (exit $exit_code): $cmd"
+      echo "$output"
+      return $exit_code
+      ;;
+  esac
+}
+
 # Jest (package.json has "jest"):
-jest --listTests 2>/dev/null
-
+if grep -q '"jest"' package.json 2>/dev/null; then
+  run_discovery "jest --listTests"
 # Vitest (package.json has "vitest"):
-npx vitest --list 2>/dev/null
-
+elif grep -q '"vitest"' package.json 2>/dev/null; then
+  run_discovery "npx vitest list"
 # Pytest (pyproject.toml or setup.py):
-pytest --collect-only -q 2>/dev/null
+elif [ -f pyproject.toml ] || [ -f setup.py ]; then
+  run_discovery "pytest --collect-only -q"
+else
+  echo "ℹ️ No test framework detected - using glob fallback"
+  ls **/*.test.ts **/*.spec.ts **/*.test.js test_*.py *_test.py 2>/dev/null || echo "No test files found"
+fi
 
-# Mocha (package.json has "mocha"):
-mocha --list 2>/dev/null
+# Note: Mocha does not have native test discovery. Use glob if needed.
 ```
 
 **Step 8b: Parse Discovery Output**
@@ -277,8 +422,8 @@ For each new test file from git diff:
 2. If NOT found, FAIL with suggestion
 
 ```bash
-# Get new test files from git diff
-git diff --name-only | grep -E "test.*\.(ts|tsx|js|jsx|py)$\|.*\.test\.\|.*_test\.\|__tests__"
+# Get new test files from git diff (use proper extended regex syntax)
+git diff --name-only | grep -E "(\.test\.(ts|tsx|js|jsx|py)$|\.spec\.(ts|tsx|js|jsx|py)$|_test\.(ts|tsx|js|jsx|py)$|test_.*\.(ts|tsx|js|jsx|py)$|__tests__/)"
 
 # Check each against discovery output
 ```
@@ -413,46 +558,11 @@ Discovery command: [command used]
 [Summary statement]
 ```
 
-### Step 10: Return Result
-
-After writing the report, return a summary:
-
-**If ALL checks pass:**
-```
-✅ Verification PASSED
-
-All quality checks passed:
-- Type check: PASSED
-- Lint: PASSED
-- Coverage: [N]% (threshold: [T]%)
-- Placeholders: None found
-- Specs: All requirements addressed
-- Git Diff: All planned files modified
-- Integration: All new code properly integrated
-- Usage: All new code has call sites
-- Test Discovery: All new tests discovered
-
-The implementation is ready for VERIFIED_COMPLETE.
-```
-
-**If ANY check fails:**
-```
-❌ Verification FAILED
-
-Issues found:
-- [Issue 1]
-- [Issue 2]
-
-See .ralph/verification-report.md for details.
-
-Return to implementation phase to fix these issues.
-```
-
-### Step 11: Plan Auto-Update
+### Step 10: Plan Auto-Update
 
 When verification fails, automatically update IMPLEMENTATION_PLAN.md to reflect issues found.
 
-**Step 11a: Uncheck Failed Items**
+**Step 10a: Uncheck Failed Items**
 
 For items that failed verification, uncheck them and add anchor reference:
 
@@ -464,7 +574,7 @@ For items that failed verification, uncheck them and add anchor reference:
 - [ ] Create AuthService <!-- See verification-report.md#fix-authservice -->
 ```
 
-**Step 11b: Add Discovered Items**
+**Step 10b: Add Discovered Items**
 
 When integration verification discovers missing tasks, add them inline with `[FOUND]` prefix:
 
@@ -480,7 +590,7 @@ Place new items:
 1. Immediately after the related item in the same phase
 2. Reference the verification-report.md anchor for fix details
 
-**Step 11c: Add Dependency/Blocking Markers**
+**Step 10c: Add Dependency/Blocking Markers**
 
 If discoveries reveal dependencies or blockers:
 
@@ -489,7 +599,7 @@ If discoveries reveal dependencies or blockers:
 - [ ] Implement OAuth flow <!-- BLOCKED_BY: Missing auth middleware -->
 ```
 
-**Step 11d: Mark Phases Complete**
+**Step 10d: Mark Phases Complete**
 
 When ALL items in a phase are checked, add completion marker:
 
@@ -497,14 +607,14 @@ When ALL items in a phase are checked, add completion marker:
 ### Phase 1: Setup ✅ COMPLETED
 ```
 
-**Step 11e: Edit Strategy**
+**Step 10e: Edit Strategy**
 
 Use the Edit tool for incremental changes to preserve git diff readability:
 1. Read current IMPLEMENTATION_PLAN.md
 2. Find specific lines to modify
 3. Apply targeted edits (not full rewrite)
 
-### Step 12: Auto-Pause Detection
+### Step 11: Auto-Pause Detection
 
 Detect deep issues that require developer intervention and pause the loop.
 
@@ -569,6 +679,53 @@ When a deep issue is detected:
 - 🔴 **CRITICAL**: Triggers pause, requires developer intervention
 - 🟡 **WARNING**: Continue with warning, developer should review
 - 🟢 **INFO**: Informational only, no action required
+
+### Step 12: Return Result
+
+After updating the plan (Step 10) and checking for pause conditions (Step 11), return a summary:
+
+**If ALL checks pass:**
+```
+✅ Verification PASSED
+
+All quality checks passed:
+- Type check: PASSED
+- Lint: PASSED
+- Coverage: [N]% (threshold: [T]%)
+- Placeholders: None found
+- Specs: All requirements addressed
+- Git Diff: All planned files modified
+- Integration: All new code properly integrated
+- Usage: All new code has call sites
+- Test Discovery: All new tests discovered
+
+The implementation is ready for VERIFIED_COMPLETE.
+```
+
+**If ANY check fails (but no CRITICAL pause):**
+```
+❌ Verification FAILED
+
+Issues found:
+- [Issue 1]
+- [Issue 2]
+
+See .ralph/verification-report.md for details.
+
+Return to implementation phase to fix these issues.
+```
+
+**If CRITICAL issue triggers pause:**
+```
+⏸️ Verification PAUSED
+
+CRITICAL issue requires developer intervention:
+- [Issue description]
+
+See .ralph/verification-report.md#[anchor] for details.
+
+Developer must address this manually, then run /ralph-build to resume.
+```
 
 ## Report Format with Anchors
 
@@ -655,7 +812,7 @@ Rules:
 - Coverage threshold is configurable, respect the setting in YAML frontmatter ONLY
 - If build commands don't exist, note it in the report
 - Always write the report, even if everything passes
-- Update the plan BEFORE returning result (Step 11 before Step 10)
+- Update the plan (Step 10) BEFORE returning result (Step 12)
 - Pause on CRITICAL issues - don't try to fix architectural problems automatically
 
 **CRITICAL - Do NOT misinterpret context as criteria:**

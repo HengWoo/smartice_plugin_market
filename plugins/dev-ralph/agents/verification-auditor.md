@@ -60,14 +60,14 @@ This is describing what the *developer* is focused on for that sprint. It does N
 Execute the following checks:
 
 ```bash
-# Detect package manager
-if [ -f "bun.lockb" ]; then
-  PM="bun"
+# Detect package manager (prefer bun for Node.js/TypeScript projects)
+if [ -f "bun.lockb" ] || [ -f "package.json" ]; then
+  PM="bun"  # Default to bun for all JS/TS projects
 elif [ -f "yarn.lock" ]; then
   PM="yarn"
 elif [ -f "pnpm-lock.yaml" ]; then
   PM="pnpm"
-elif [ -f "package.json" ]; then
+elif [ -f "package-lock.json" ]; then
   PM="npm"
 elif [ -f "pyproject.toml" ] || [ -f "setup.py" ]; then
   PM="python"
